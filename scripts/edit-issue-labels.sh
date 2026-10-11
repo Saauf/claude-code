@@ -23,10 +23,18 @@ REMOVE_LABELS=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     --add-label)
+      if [[ $# -lt 2 || -z "${2:-}" ]]; then
+        echo "Error: --add-label requires a label argument" >&2
+        exit 1
+      fi
       ADD_LABELS+=("$2")
       shift 2
       ;;
     --remove-label)
+      if [[ $# -lt 2 || -z "${2:-}" ]]; then
+        echo "Error: --remove-label requires a label argument" >&2
+        exit 1
+      fi
       REMOVE_LABELS+=("$2")
       shift 2
       ;;
@@ -38,6 +46,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ${#ADD_LABELS[@]} -eq 0 && ${#REMOVE_LABELS[@]} -eq 0 ]]; then
+  echo "Error: at least one --add-label or --remove-label argument is required" >&2
   exit 1
 fi
 
@@ -46,14 +55,14 @@ VALID_LABELS=$(gh label list --limit 500 --json name --jq '.[].name')
 
 # Filter to only labels that exist in the repo
 FILTERED_ADD=()
-for label in "${ADD_LABELS[@]}"; do
+for label in ${ADD_LABELS[@]+"${ADD_LABELS[@]}"}; do
   if echo "$VALID_LABELS" | grep -qxF "$label"; then
     FILTERED_ADD+=("$label")
   fi
 done
 
 FILTERED_REMOVE=()
-for label in "${REMOVE_LABELS[@]}"; do
+for label in ${REMOVE_LABELS[@]+"${REMOVE_LABELS[@]}"}; do
   if echo "$VALID_LABELS" | grep -qxF "$label"; then
     FILTERED_REMOVE+=("$label")
   fi
@@ -66,11 +75,11 @@ fi
 # Build gh command arguments
 GH_ARGS=("issue" "edit" "$ISSUE")
 
-for label in "${FILTERED_ADD[@]}"; do
+for label in ${FILTERED_ADD[@]+"${FILTERED_ADD[@]}"}; do
   GH_ARGS+=("--add-label" "$label")
 done
 
-for label in "${FILTERED_REMOVE[@]}"; do
+for label in ${FILTERED_REMOVE[@]+"${FILTERED_REMOVE[@]}"}; do
   GH_ARGS+=("--remove-label" "$label")
 done
 
